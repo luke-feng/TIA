@@ -4,7 +4,7 @@ import sys
 from torch.utils.data import DataLoader
 from DFL_util import parse_experiment_file, dataset_model_set, create_nodes_list, \
     create_adjacency, sample_iid_train_data, sample_dirichlet_train_data, create_random_adjacency, \
-    save_params, create_graph_object
+    save_params, create_graph_object, fed_avg
 from lightning import Trainer
 from MyCustomCallback import MyCustomCheckpoint
 import json
@@ -12,7 +12,7 @@ from datetime import datetime
 import time
 import torch
 import networkx as nx
-
+import pickle as pk
 
 def setup_logger(name, log_file, level=logging.INFO):
     """Function setup as many loggers as you want"""
@@ -31,19 +31,23 @@ def setup_logger(name, log_file, level=logging.INFO):
 
 
 def main():
-    TOPOLOGY = ["star", "ring","ER_0.3", "ER_0.5", "ER_0.7"]
-    ROUND = 10
-    NUM_CLIENTS = [10]
+    TOPOLOGY = ["star", "ring","ER_0.3", "ER_0.5", "ER_0.7",'Abilene', 'GÉANT', 'synth50', 'rf1755', 'rf3967']
+    # TOPOLOGY = ["rf1755"]
+    ROUND = 20
+    NUM_CLIENTS = [10,20,30,12,22,50,79,87]
+    # NUM_CLIENTS = [87]
     DATASET = ["Cifar10no", "Cifar10", "Mnist","FMnist"]
+    # DATASET = ["Mnist"]
     MODEL = ["mlp", "mobile"]
-    IID = [0]
-    BATCH_SIZE = 128
-    SIZE = 2500  # fixed as 2500 to 10 clients, 1250 to 20 clients and 834 to 30 clients
-    MAX_EPOCHS = [3, 10] 
+    # MODEL = ["mlp"]
+    IID = [1, 0]
+    BATCH_SIZE = 256
+    SIZE = 1250  # fixed as 2500 to 10 clients, 1250 to 20 clients and 834 to 30 clients
+    MAX_EPOCHS = [3, 10]
     SEED = [42]
     ALPHA = 0.1
     
-    
+    cur_dir = os.getcwd()
     for dataset in DATASET:
         for model_name in MODEL:
             # dataset and model setting
@@ -52,65 +56,152 @@ def main():
             if global_dataset == None or global_model == None:
                 continue
                 
-            for topo in TOPOLOGY:
-                                
+            for topo in TOPOLOGY:                                
                 for iid in IID:
                     for seed in SEED:
                         for max_epoch in MAX_EPOCHS:
                             for num in NUM_CLIENTS:
+                                ROUND =  num + 10                              
+                                
+                                
                                 file_name = dataset + "_" + model_name + "_" + topo + "_" + str(iid) + "_" + str(ALPHA) + "_" + str(seed) + "_" + str(max_epoch) + "_" + str(num)
                                 
                                 # Directory and log file for model results logging
-                                model_directory = f'./saved_logs/Extra_cases/{file_name}'
+                                log_directory = f'{cur_dir}/saved_logs/Extra_cases/{file_name}'
+                                os.makedirs(log_directory, exist_ok=True)
+                                model_directory = f'{cur_dir}/saved_models/Extra_cases/{file_name}'
                                 os.makedirs(model_directory, exist_ok=True)
-                                model_log_file = os.path.join(model_directory, 'fed_model_result.log')
+                                
+                                model_log_file = os.path.join(log_directory, 'fed_model_result.log')
                                 model_logger = setup_logger('model_logger_{file_name}', model_log_file)
                             
                                 # separate client's dataset: # A list containing all dataloaders
                                 if iid:
                                     train_subsets, test_subsets = sample_iid_train_data(global_dataset, num, SIZE, seed)
-                                    train_loaders = [DataLoader(i, batch_size=BATCH_SIZE, shuffle=True, num_workers=12) for i in train_subsets]
+                                    train_loaders = [DataLoader(i, batch_size=BATCH_SIZE, shuffle=True, num_workers=0) for i in train_subsets]
                                     
-                                    test_loaders = [DataLoader(i, batch_size=BATCH_SIZE, shuffle=False, num_workers=12) for i in test_subsets]
+                                    test_loaders = [DataLoader(i, batch_size=BATCH_SIZE, shuffle=False, num_workers=0) for i in test_subsets]
                                 else:
                                     print("non-iid")
-                                    train_subsets = sample_dirichlet_train_data(global_dataset.train_set, num, SIZE * num,
+                                    train_subsets, test_subsets = sample_dirichlet_train_data(global_dataset, num, SIZE * num,
                                                                                 ALPHA, seed)
-                                    train_loaders = [DataLoader(train_subsets[i], batch_size=BATCH_SIZE, shuffle=True, num_workers=12)
+                                    train_loaders = [DataLoader(train_subsets[i], batch_size=BATCH_SIZE, shuffle=True, num_workers=0)
                                                      for i in range(num)]
                                                      
-                                    test_loaders = [0]*num
-                            
+                                    # test_loaders = [0]*num
+                                    test_loaders = [DataLoader(i, batch_size=BATCH_SIZE, shuffle=False, num_workers=0) for i in test_subsets]
+                                print("dataloader created+++++++++++++++++++++++++++")
                                 # nodes setting
-                                nodes_list = create_nodes_list(num, [train_loaders, test_loaders], global_model, file_name)
+                                # nodes_list = create_nodes_list(num, [train_loaders, test_loaders], global_model, file_name)
                                 
-                                G = create_graph_object(num, topo)
+                                # G = create_graph_object(num, topo)
+                                toponame_file = f"{cur_dir}/topologies/{num}_{topo}.pk"
+                                if os.path.exists(toponame_file):  
+                                    with open(toponame_file, "rb") as f:
+                                        G = pk.load(f)
+                                else:
+                                    continue
                                 
-                                nodes_list = create_adjacency(nodes_list, G)
+                                node_adj_list = create_adjacency(range(num), G)
                             
                                 # trainer setting
                                 start_time = time.time()
+                                # print(f"Training start: {start_time}")
+                                
+                                # save dataloader for future attack
+                                train_loaders_file = os.path.join(model_directory, 'train_loaders.pk')
+                                with open(train_loaders_file, "wb") as trl:
+                                    pk.dump(train_loaders, trl)
+                                    
+                                test_loaders_file = os.path.join(model_directory, 'test_loaders.pk')
+                                with open(test_loaders_file, "wb") as tsl:
+                                    pk.dump(test_loaders, tsl)
+                                
+                                node_adj_list_file = os.path.join(model_directory, 'node_adj_list.pk')
+                                with open(node_adj_list_file, "wb") as ajd:
+                                    pk.dump(node_adj_list, ajd)
+                                    
+                                    
+                                # save initial params to filesyststem for large scale network
+                                for client in node_adj_list:
+                                    r = 0 - 1
+                                    init_node_file_path = f"{model_directory}/Aggregated_models/Round_{r}"
+                                    os.makedirs(init_node_file_path, exist_ok=True)
+                                    
+                                    save_params(global_model.state_dict(), round_num=r, file_name=init_node_file_path
+                                                    , client_id=client, is_global=True)
+                                    
+                                    
+                                # start dfl training
                                 for r in range(ROUND):
                                     model_logger.info(f"{r} round start:")
+                                    last_round_file_path = f"{model_directory}/Aggregated_models/Round_{r-1}/"
                                     
                                     # training process
-                                    for client in nodes_list:
-                                                                
-                                        local_trainer = Trainer(max_epochs=max_epoch, accelerator="auto", devices="auto", logger=False,
-                                                        callbacks = [MyCustomCheckpoint(save_dir=f"saved_models/Extra_cases_{num}/{file_name}/Local_models/Round_{r}",
-                                                        idx=client.idx, rou=r, logger=model_logger)],
-                                                        enable_checkpointing=False, enable_model_summary=False, enable_progress_bar=False)
-                                                                
-                                        local_trainer.fit(client.model, client.train_loader)
-                                        client.set_current_params(client.model.state_dict())  # store the current trained model params
+                                    for node_id in range(num):
+                                        print(f"Training start for Node: {node_id}")
+                                        client_path = last_round_file_path + f"client_{node_id}.pth"
                                         
-                                
+                                        # load last round params
+                                        if os.path.exists(client_path):                                        
+                                            last_round_params = torch.load(client_path)
+                                        
+                                            client = global_model
+                                            client.load_state_dict(last_round_params)
+                                                                                           
+                                        else:
+                                            print("error! last round file does not exist!!!")
+                                            client = None
+                                        
+                                        local_trainer = Trainer(max_epochs=max_epoch, accelerator="gpu", devices=1, logger=False,
+                                                        # callbacks = [MyCustomCheckpoint(save_dir=f"{model_directory}/Local_models/Round_{r}",
+                                                        # idx=client.idx, rou=r, logger=model_logger)],
+                                                        enable_checkpointing=False, enable_model_summary=False, enable_progress_bar=True)
+                                        
+                                        print("trainer created++++++++++++++")
+                                        train_loader = train_loaders[node_id]
+                                        # local_trainer.fit(client.model, client.train_loader)
+                                        local_trainer.fit(client, train_loader)
+                                                             
+                                        # save model params
+                                        save_params(client.state_dict(), round_num=r, file_name=f"{model_directory}/Local_models/Round_{r}"
+                                                    , client_id=node_id, is_global=True)
+                                        
+                                        # current client local training finished
+                                        local_trainer = None
+                                        client = None
+                           
                                     # Aggregation process
-                                    for client in nodes_list:
-                                        client.aggregate_weights()
+                                    nodes_list = {}
+                                    # load clients from filesystem
+                                    for node_id in range(num):
+                                        print(f"Agg. start for Node: {node_id}")
+                                        client_path = f"{model_directory}/Local_models/Round_{r}/client_{node_id}.pth"
+                                        if os.path.exists(client_path):
+                                            client_params = torch.load(client_path)
+                                            nodes_list[node_id] = client_params
+                                    
+                                    # fedavg
+                                    for node_id in nodes_list:
+                                        client_params = nodes_list[node_id]
+                                        agged_client_params = fed_avg(client_params, nodes_list, node_adj_list[node_id])
+                                        save_params(client_params, round_num=r, file_name=f"{model_directory}/Aggregated_models/Round_{r}"
+                                                    , client_id=node_id, is_global=True)
                                         
-                                        save_params(client.aggregated_params, round_num=r, file_name=f"saved_models/Extra_cases_{num}/{file_name}/Aggregated_models/Round_{r}"
-                                                    , client_id=client.idx, is_global=True)
+                                        if r == ROUND-1:
+                                            local_trainer = Trainer(accelerator="gpu", devices=1, logger=False,
+                                                            # callbacks = [MyCustomCheckpoint(save_dir=f"{model_directory}/Local_models/Round_{r}",
+                                                            # idx=client.idx, rou=r, logger=model_logger)],
+                                                            enable_checkpointing=False, enable_model_summary=False, enable_progress_bar=True)
+                                            client = global_model
+                                            client.load_state_dict(agged_client_params)
+                                            test_loader = test_loaders[node_id]
+                                            local_trainer.test(client, test_loader)
+                                            local_trainer = None
+                                        
+                                            client = None
+                                    nodes_list = None
+                                        
                         
                                 end_time = time.time()
                                 model_logger.info(f"Finished in {end_time-start_time} seconds")

@@ -6,6 +6,7 @@ from Dataset.cifar10 import CIFAR10Dataset, CIFAR10DatasetNoAugmentation, CIFAR1
 from Dataset.mnist import MNISTDataset
 from Dataset.fmnist import FashionMNISTDataset
 from Model.mlp import MLP
+from Model.mnistmlp import MNISTModelMLP
 from Model.fashionmlp import FashionMNISTModelMLP
 from Model.cnn import CIFAR10ModelCNN
 from Model.simplemobilenet import SimpleMobileNet
@@ -25,6 +26,7 @@ def dataset_model_set(dataset, model):
         g_dataset = MNISTDataset()
         if model == "mlp":
             g_model = MLP()
+            # g_model = MNISTModelMLP()
         elif model == "cnn":
             pass
         else:
@@ -115,14 +117,25 @@ def create_graph_object(num, name):
     return G
         
 
-def create_adjacency(nodes_list, graph):
-    node_map = {node.idx: node for node in nodes_list}
+# def create_adjacency(nodes_list, graph):
+#     node_map = {node.idx: node for node in nodes_list}
 
-    for node in nodes_list:
-        graph_neighbors = list(graph.neighbors(node.idx))
-        node.neigh = {node_map[neighbor_id] for neighbor_id in graph_neighbors}
+#     for node in nodes_list:
+#         graph_neighbors = list(graph.neighbors(node.idx))
+#         node.neigh_list = graph_neighbors
+#         # node.neigh = {node_map[neighbor_id] for neighbor_id in graph_neighbors}
 
-    return nodes_list
+#     return nodes_list
+
+def create_adjacency(nodes_id_list, graph):
+    node_adj_list = {}
+    for node in nodes_id_list:
+        graph_neighbors = list(graph.neighbors(node))
+        node_adj_list[node] = graph_neighbors
+        # node.neigh_list = graph_neighbors
+        # node.neigh = {node_map[neighbor_id] for neighbor_id in graph_neighbors}
+
+    return node_adj_list
     
     
 def create_random_adjacency(nodes_list, combo): # this function aims to add extra links between specific nodes based on one ring graph
@@ -179,6 +192,8 @@ def sample_iid_train_data(dataset, num_client, data_size, seed):
     np.random.seed(seed)
     train_indices = np.arange(len(dataset.train_set))
     test_indices = np.arange(len(dataset.test_set))
+    
+    data_size = int(round(len(train_indices)/num_client/2)) - 1
 
     np.random.shuffle(train_indices)
     np.random.shuffle(test_indices)
@@ -204,11 +219,14 @@ def build_classes_dict(dataset):
 
 def sample_dirichlet_train_data(dataset, num_client, data_size, alpha, seed):
     np.random.seed(seed)
-    all_indices = np.arange(len(dataset))
+    train_dataset = dataset.train_set
+    all_indices = np.arange(len(train_dataset))
     np.random.shuffle(all_indices)
 
+    data_size = int(round(len(all_indices)/num_client/2)) - 1
+    
     subset_indices = all_indices[:data_size]
-    subset_dataset = Subset(dataset, subset_indices)
+    subset_dataset = Subset(train_dataset, subset_indices)
 
     data_classes = build_classes_dict(subset_dataset)
     per_participant_list = defaultdict(list)
@@ -228,29 +246,40 @@ def sample_dirichlet_train_data(dataset, num_client, data_size, alpha, seed):
     for i in per_participant_list:
         actual_indices = [subset_indices[idx] for idx in
                           per_participant_list[i]]  # Map back to original dataset indices
-        per_participant_list[i] = Subset(dataset, actual_indices)
+        per_participant_list[i] = Subset(train_dataset, actual_indices)
 
     for idx, subset in per_participant_list.items():
         label_counter = Counter({label: 0 for label in range(no_classes)})
         for _, label in subset:
             label_counter[label] += 1
         total_samples = sum(label_counter.values())
+        
+    # Calculate test subset size and create test subsets
+    test_indices = np.arange(len(dataset.test_set))
+    test_size = int(len(dataset.test_set) / num_client)
+    test_subsets_indices = [test_indices[i * test_size:(i + 1) * test_size] for i in range(num_client)]
+    test_subsets = [Subset(dataset.test_set, indices) for indices in test_subsets_indices]
 
-    return per_participant_list
+    return per_participant_list, test_subsets
 
 
 def save_params(params_dict, round_num, file_name, client_id=None, is_global=False):
-    if is_global:
-        if round_num in [9, 14, 19, 24, 29, 34, 39]:
-            os.makedirs(file_name, exist_ok=True)
-            model_name = f"client_{client_id}.pth"
+    # if is_global:
+    #     if round_num in [9, 14, 19, 24, 29, 34, 39]:
+    #         os.makedirs(file_name, exist_ok=True)
+    #         model_name = f"client_{client_id}.pth"
             
-            path = os.path.join(file_name, model_name)
-            torch.save(params_dict, path)
-    else:
-        directory = f"saved_models/{file_name}/Nei_aggregated_models/Round_{round_num}"
-        os.makedirs(directory, exist_ok=True)
-        filename = f"client_{client_id}.pth"
+    #         path = os.path.join(file_name, model_name)
+    #         torch.save(params_dict, path)
+    # else:
+    #     directory = f"saved_models/{file_name}/Nei_aggregated_models/Round_{round_num}"
+    #     os.makedirs(directory, exist_ok=True)
+    #     filename = f"client_{client_id}.pth"
+    
+    os.makedirs(file_name, exist_ok=True)
+    model_name = f"client_{client_id}.pth"
+    path = os.path.join(file_name, model_name)
+    torch.save(params_dict, path)
         
         
 def prepare_shadow_dataset(global_dataset, size, seed):
@@ -420,6 +449,32 @@ def ML_train_test(train_set, test_set, size, seed):
     return final_train, final_test
     
 
+def fed_avg(client_params, nodes_list, neigh_list):
+    # Initialize the aggregated weights with the current node's parameters
+    aggregated_weights = {k: torch.zeros_like(v) for k, v in client_params.items()}
+    
+    # Accumulate the weights from the neighbors
+    for node_id in neigh_list:
+        node_weights = nodes_list[node_id]
+        
+        for k in aggregated_weights.keys():
+            aggregated_weights[k] += node_weights[k]
+        '''for k in nei_aggregated_weights.keys():
+            nei_aggregated_weights[k] += node_weights[k]'''
 
+    # Average the weights (including the current node's weights)
+    num_nodes = len(neigh_list) + 1
+    for k in aggregated_weights.keys():
+        aggregated_weights[k] += client_params[k]
+        avg = aggregated_weights[k]/num_nodes
+        aggregated_weights[k] = avg.to(aggregated_weights[k].dtype)
+
+    # Apply the aggregated weights to the model
+    # with torch.no_grad():  # Ensure gradients are not tracked for this operation
+    #     client.model.load_state_dict(aggregated_weights, strict=False)
+
+    # # self.nei_agg_params = nei_aggregated_weights
+    # client.aggregated_params = aggregated_weights
+    return aggregated_weights
 
     

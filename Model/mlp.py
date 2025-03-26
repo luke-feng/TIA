@@ -38,33 +38,33 @@ class MLP(L.LightningModule):
     def training_step(self, batch, batch_idx):
         loss, y_pred, labels = self._common_step(batch)
 
-        accuracy = self.accuracy(y_pred, labels)
-        precision = self.precision(y_pred, labels)
-        recall = self.recall(y_pred, labels)
-        F1 = self.F1(y_pred, labels)
+        # accuracy = self.accuracy(y_pred, labels)
+        # precision = self.precision(y_pred, labels)
+        # recall = self.recall(y_pred, labels)
+        # F1 = self.F1(y_pred, labels)
         self.log_dict({
             "train_loss": loss,
-            "train_accuracy": accuracy,
-            "train_precision": precision,
-            "train_recall": recall,
-            "train_f1_score": F1
+            # "train_accuracy": accuracy,
+            # "train_precision": precision,
+            # "train_recall": recall,
+            # "train_f1_score": F1
         }, on_step=False, on_epoch=True, prog_bar=False)
         return {"loss": loss, "scores": y_pred, "y": labels}
 
     def validation_step(self, batch, batch_idx):
         loss, y_pred, labels = self._common_step(batch)
 
-        accuracy = self.accuracy(y_pred, labels)
-        precision = self.precision(y_pred, labels)
-        recall = self.recall(y_pred, labels)
-        F1 = self.F1(y_pred, labels)
+        # accuracy = self.accuracy(y_pred, labels)
+        # precision = self.precision(y_pred, labels)
+        # recall = self.recall(y_pred, labels)
+        # F1 = self.F1(y_pred, labels)
 
         self.log_dict({
             "val_loss": loss,
-            "val_accuracy": accuracy,
-            "val_precision": precision,
-            "val_recall": recall,
-            "val_f1_score": F1
+            # "val_accuracy": accuracy,
+            # "val_precision": precision,
+            # "val_recall": recall,
+            # "val_f1_score": F1
         }, on_step=False, on_epoch=True, prog_bar=False)
         return {"loss": loss, "scores": y_pred, "y": labels}
 

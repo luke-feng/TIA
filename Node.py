@@ -5,10 +5,11 @@ import torch
 class Node:
     def __init__(self, idx, model, train_loader, test_loader, logger=None):
         self.idx = idx
-        self.train_loader = train_loader
-        self.test_loader = test_loader
+        # self.train_loader = train_loader
+        # self.test_loader = test_loader
         self.model = model
-        self.neigh = set()
+        # self.neigh = set()
+        self.neigh_list = []
         self.current_params = None
         self.aggregated_params = None
         
