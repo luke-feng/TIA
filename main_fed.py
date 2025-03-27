@@ -40,7 +40,7 @@ def main():
     # DATASET = ["Mnist"]
     MODEL = ["mlp", "mobile"]
     # MODEL = ["mlp"]
-    IID = [1, 0]
+    IID = [1]
     BATCH_SIZE = 256
     SIZE = 1250  # fixed as 2500 to 10 clients, 1250 to 20 clients and 834 to 30 clients
     MAX_EPOCHS = [3, 10]
@@ -61,7 +61,16 @@ def main():
                     for seed in SEED:
                         for max_epoch in MAX_EPOCHS:
                             for num in NUM_CLIENTS:
-                                ROUND =  num + 10                              
+                                ROUND =  num + 10
+                                
+                                # G = create_graph_object(num, topo)
+                                toponame_file = f"{cur_dir}/topologies/{num}_{topo}.pk"
+                                if os.path.exists(toponame_file):  
+                                    with open(toponame_file, "rb") as f:
+                                        G = pk.load(f)
+                                else:
+                                    continue
+                                                           
                                 
                                 
                                 file_name = dataset + "_" + model_name + "_" + topo + "_" + str(iid) + "_" + str(ALPHA) + "_" + str(seed) + "_" + str(max_epoch) + "_" + str(num)
@@ -70,7 +79,10 @@ def main():
                                 log_directory = f'{cur_dir}/saved_logs/Extra_cases/{file_name}'
                                 os.makedirs(log_directory, exist_ok=True)
                                 model_directory = f'{cur_dir}/saved_models/Extra_cases/{file_name}'
-                                os.makedirs(model_directory, exist_ok=True)
+                                try:
+                                    os.makedirs(model_directory)
+                                except:
+                                    continue
                                 
                                 model_log_file = os.path.join(log_directory, 'fed_model_result.log')
                                 model_logger = setup_logger('model_logger_{file_name}', model_log_file)
@@ -94,13 +106,6 @@ def main():
                                 # nodes setting
                                 # nodes_list = create_nodes_list(num, [train_loaders, test_loaders], global_model, file_name)
                                 
-                                # G = create_graph_object(num, topo)
-                                toponame_file = f"{cur_dir}/topologies/{num}_{topo}.pk"
-                                if os.path.exists(toponame_file):  
-                                    with open(toponame_file, "rb") as f:
-                                        G = pk.load(f)
-                                else:
-                                    continue
                                 
                                 node_adj_list = create_adjacency(range(num), G)
                             
@@ -136,10 +141,10 @@ def main():
                                 for r in range(ROUND):
                                     model_logger.info(f"{r} round start:")
                                     last_round_file_path = f"{model_directory}/Aggregated_models/Round_{r-1}/"
-                                    
+                                    print(f"Training start for round: {r}")
                                     # training process
                                     for node_id in range(num):
-                                        print(f"Training start for Node: {node_id}")
+                                        
                                         client_path = last_round_file_path + f"client_{node_id}.pth"
                                         
                                         # load last round params
@@ -156,9 +161,9 @@ def main():
                                         local_trainer = Trainer(max_epochs=max_epoch, accelerator="gpu", devices=1, logger=False,
                                                         # callbacks = [MyCustomCheckpoint(save_dir=f"{model_directory}/Local_models/Round_{r}",
                                                         # idx=client.idx, rou=r, logger=model_logger)],
-                                                        enable_checkpointing=False, enable_model_summary=False, enable_progress_bar=True)
+                                                        enable_checkpointing=False, enable_model_summary=False, enable_progress_bar=False)
                                         
-                                        print("trainer created++++++++++++++")
+                                        # print("trainer created++++++++++++++")
                                         train_loader = train_loaders[node_id]
                                         # local_trainer.fit(client.model, client.train_loader)
                                         local_trainer.fit(client, train_loader)
@@ -175,7 +180,7 @@ def main():
                                     nodes_list = {}
                                     # load clients from filesystem
                                     for node_id in range(num):
-                                        print(f"Agg. start for Node: {node_id}")
+                                        # print(f"Agg. start for Node: {node_id}")
                                         client_path = f"{model_directory}/Local_models/Round_{r}/client_{node_id}.pth"
                                         if os.path.exists(client_path):
                                             client_params = torch.load(client_path)
