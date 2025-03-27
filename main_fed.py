@@ -13,6 +13,8 @@ import time
 import torch
 import networkx as nx
 import pickle as pk
+import logging
+logging.getLogger("lightning.pytorch").setLevel(logging.ERROR)
 
 def setup_logger(name, log_file, level=logging.INFO):
     """Function setup as many loggers as you want"""
@@ -74,7 +76,7 @@ def main():
                                 
                                 
                                 file_name = dataset + "_" + model_name + "_" + topo + "_" + str(iid) + "_" + str(ALPHA) + "_" + str(seed) + "_" + str(max_epoch) + "_" + str(num)
-                                
+                                print(file_name)
                                 # Directory and log file for model results logging
                                 log_directory = f'{cur_dir}/saved_logs/Extra_cases/{file_name}'
                                 os.makedirs(log_directory, exist_ok=True)
