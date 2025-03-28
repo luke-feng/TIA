@@ -86,8 +86,8 @@ def main():
                                 except:
                                     continue
                                 
-                                model_log_file = os.path.join(log_directory, 'fed_model_result.log')
-                                model_logger = setup_logger('model_logger_{file_name}', model_log_file)
+                                # model_log_file = os.path.join(log_directory, 'fed_model_result.log')
+                                # model_logger = setup_logger('model_logger_{file_name}', model_log_file)
                             
                                 # separate client's dataset: # A list containing all dataloaders
                                 if iid:
@@ -141,7 +141,7 @@ def main():
                                     
                                 # start dfl training
                                 for r in range(ROUND):
-                                    model_logger.info(f"{r} round start:")
+                                    # model_logger.info(f"{r} round start:")
                                     last_round_file_path = f"{model_directory}/Aggregated_models/Round_{r-1}/"
                                     print(f"Training start for round: {r}")
                                     # training process
@@ -211,7 +211,7 @@ def main():
                                         
                         
                                 end_time = time.time()
-                                model_logger.info(f"Finished in {end_time-start_time} seconds")
+                                print(f"Finished in {end_time-start_time} seconds")
 
 
 if __name__ == '__main__':
