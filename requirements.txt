@@ -9,3 +9,5 @@ torchaudio
 lightning
 imblearn
 statsmodels
+h5py
+lmdb
