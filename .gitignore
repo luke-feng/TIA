@@ -178,3 +178,4 @@ cython_debug/
 /saved_logs
 /saved_models
 /data
+/.venv

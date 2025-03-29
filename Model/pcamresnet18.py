@@ -9,14 +9,13 @@ class PCAMResNet18(pl.LightningModule):
     def __init__(self, in_channels=3, out_channels=2, learning_rate=1e-3, seed=None):
         super().__init__()
 
-        # 使用预定义的 ResNet18，并适配输入通道和输出通道
+        
         self.model = models.resnet18(pretrained=False)
 
-        # 修改第一个卷积层以适配输入图像大小（PCam 图像为 96x96）
+        
         self.model.conv1 = nn.Conv2d(in_channels, 64, kernel_size=3, stride=1, padding=1, bias=False)
-        self.model.maxpool = nn.Identity()  # 移除最大池化层以保留更多空间信息
+        self.model.maxpool = nn.Identity()  
 
-        # 修改分类头
         self.model.fc = nn.Linear(self.model.fc.in_features, out_channels)
 
         self.criterion = nn.CrossEntropyLoss()

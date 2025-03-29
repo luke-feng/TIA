@@ -11,3 +11,4 @@ imblearn
 statsmodels
 h5py
 lmdb
+matplotlib

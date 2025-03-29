@@ -1,27 +1,24 @@
 import torch
 import torch.nn as nn
 import lightning.pytorch as pl
-import torchvision.models as models
 from torchmetrics.classification import MulticlassAccuracy, MulticlassPrecision, MulticlassRecall, MulticlassF1Score
+import torchvision.models as models
 
 
-class SVHNResNet18(pl.LightningModule):
-    def __init__(self, in_channels=3, out_channels=10, learning_rate=1e-3, seed=None):
+class ImageNet100VGG(pl.LightningModule):
+    def __init__(self, in_channels=3, out_channels=100, learning_rate=1e-3, seed=None):
         super().__init__()
 
+        self.save_hyperparameters()
 
-        self.model = models.resnet18(pretrained=False)
+        # 加载 VGG 模型（使用 VGG11，结构更轻量）
+        self.model = models.vgg11_bn(pretrained=False)
 
+        # 替换分类头为 100 类输出
+        self.model.classifier[6] = nn.Linear(self.model.classifier[6].in_features, out_channels)
 
-        self.model.conv1 = nn.Conv2d(in_channels, 64, kernel_size=3, stride=1, padding=1, bias=False)
-        self.model.maxpool = nn.Identity()  
-
-        self.model.fc = nn.Linear(self.model.fc.in_features, out_channels)
-
-        
         self.criterion = nn.CrossEntropyLoss()
 
-     
         self.accuracy = MulticlassAccuracy(num_classes=out_channels)
         self.precision = MulticlassPrecision(num_classes=out_channels, average='macro')
         self.recall = MulticlassRecall(num_classes=out_channels, average='macro')
