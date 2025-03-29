@@ -33,19 +33,20 @@ def setup_logger(name, log_file, level=logging.INFO):
 
 
 def main():
-    TOPOLOGY = ["star", "ring","ER_0.3", "ER_0.5", "ER_0.7",'Abilene', 'GÉANT', 'synth50', 'rf1755', 'rf3967']
-    # TOPOLOGY = ["rf1755"]
+    # TOPOLOGY = ["star", "ring","ER_0.3", "ER_0.5", "ER_0.7",'Abilene', 'GÉANT', 'synth50', 'rf1755', 'rf3967', 'atlanta', 'brain', 'cost266', 'dfn-bwin', 'dfn-gwin', 'di-yuan', 'france',  'germany50', 'giul39', 'india35', 'janos-us', 'janos-us-ca', 'newyork', 'nobel-eu', 'nobel-germany', 'nobel-us', 'norway', 'pdh', 'pioro40', 'polska', 'sun', 'ta1', 'ta2', 'zib54']
+    TOPOLOGY = ["atlanta"]
     ROUND = 20
-    NUM_CLIENTS = [10,20,30,12,22,50,79,87]
-    # NUM_CLIENTS = [87]
-    DATASET = ["Cifar10no", "Cifar10", "Mnist","FMnist"]
-    # DATASET = ["Mnist"]
-    MODEL = ["mlp", "mobile"]
-    # MODEL = ["mlp"]
+    # NUM_CLIENTS = [10, 20,30,12,22,50,79,87, 15, 161, 37, 11, 25, 35, 26, 39, 16, 28, 17, 14,  40,  27, 24, 65, 54]
+    NUM_CLIENTS = [15]
+    # DATASET = ["Cifar10no", "Cifar10", "Mnist","FMnist"]
+    DATASET = ["Mnist"]
+    # MODEL = ["mlp", "mobile"]
+    MODEL = ["mlp"]
     IID = [1]
     BATCH_SIZE = 256
     SIZE = 1250  # fixed as 2500 to 10 clients, 1250 to 20 clients and 834 to 30 clients
-    MAX_EPOCHS = [3, 10]
+    # MAX_EPOCHS = [3, 10]
+    MAX_EPOCHS = [3]
     SEED = [42]
     ALPHA = 0.1
     
