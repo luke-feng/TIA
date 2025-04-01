@@ -12,6 +12,7 @@ from Dataset.pcam import PCAMdataset
 
 from Dataset.imagenet100 import ImageNet100Dataset
 from Model.imagenet100vgg import ImageNet100VGG
+from Model.imagenet100st import ImageNet100SwinTransformer
 
 dataset = ImageNet100Dataset()
 
@@ -22,8 +23,8 @@ train_subsets_indices = [train_indices[i * data_size:(i + 1) * data_size] for i 
 train_subsets = [Subset(dataset.train_set, indices) for indices in train_subsets_indices]
  
 for i in range(1):   
-    train_loader = DataLoader(train_subsets[i], batch_size=2, shuffle=True, num_workers=0)
-    model = ImageNet100VGG()
+    train_loader = DataLoader(train_subsets[i], batch_size=8, shuffle=True, num_workers=0)
+    model = ImageNet100SwinTransformer()
     local_trainer = Trainer(max_epochs=10, accelerator="auto", devices="auto", logger=False,
                                                             # callbacks = [MyCustomCheckpoint(save_dir=f"{model_directory}/Local_models/Round_{r}",
                                                             # idx=client.idx, rou=r, logger=model_logger)],
