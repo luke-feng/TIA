@@ -5,11 +5,20 @@ from collections import Counter
 from Dataset.cifar10 import CIFAR10Dataset, CIFAR10DatasetNoAugmentation, CIFAR10DatasetExtendedAugmentation
 from Dataset.mnist import MNISTDataset
 from Dataset.fmnist import FashionMNISTDataset
+from Dataset.pcam import PCAMdataset
+from Dataset.svhn import SVHNdataset
+from Dataset.imagenet100 import ImageNet100Dataset
+
 from Model.mlp import MLP
 from Model.mnistmlp import MNISTModelMLP
 from Model.fashionmlp import FashionMNISTModelMLP
 from Model.cnn import CIFAR10ModelCNN
 from Model.simplemobilenet import SimpleMobileNet
+from Model.pcamresnet18 import PCAMResNet18
+from Model.svhnresnet18 import SVHNResNet18
+from Model.imagenet100vgg import ImageNet100VGG
+
+
 from torch.utils.data import Subset, DataLoader, ConcatDataset
 from Node import Node
 import numpy as np
@@ -61,6 +70,19 @@ def dataset_model_set(dataset, model):
             pass
         elif model == "cnn":
             g_model = CIFAR10ModelCNN()
+
+    elif dataset == 'svhn':
+        g_dataset = SVHNdataset()
+        if model == "resnet":
+            g_model = SVHNResNet18()
+    elif dataset == 'imagenet100':
+        g_dataset = ImageNet100Dataset()
+        if model == "vgg":
+            g_model = ImageNet100VGG()
+    elif dataset == 'pcam':
+        g_dataset = PCAMdataset()
+        if model == "resnet":
+            g_model = PCAMResNet18()
     return g_dataset, g_model
     
     
