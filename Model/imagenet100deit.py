@@ -1,20 +1,18 @@
 import torch
 import torch.nn as nn
 import lightning.pytorch as pl
+import timm
 from torchmetrics.classification import MulticlassAccuracy, MulticlassPrecision, MulticlassRecall, MulticlassF1Score
-from torchvision.models import swin_t, Swin_T_Weights, swin_v2_t
 
 
-class ImageNet100SwinTransformer(pl.LightningModule):
-    def __init__(self, in_channels=3, out_channels=100, learning_rate=1e-3, seed=None):
+class ImageNet100DeiTTiny(pl.LightningModule):
+    def __init__(self, out_channels=100, learning_rate=1e-3, seed=None):
         super().__init__()
 
         self.save_hyperparameters()
 
-        # 加载 Swin Transformer Tiny 模型（可选加载预训练权重）
-        self.model = swin_v2_t(weights=None)  # 可替换为 Swin_T_Weights.IMAGENET1K_V1
-
-        # 替换分类头为 100 类输出
+        # 加载 DeiT-Tiny 模型
+        self.model = timm.create_model('deit_tiny_patch16_224', pretrained=True)
         self.model.head = nn.Linear(self.model.head.in_features, out_channels)
 
         self.criterion = nn.CrossEntropyLoss()
@@ -34,7 +32,7 @@ class ImageNet100SwinTransformer(pl.LightningModule):
         return self.model(x)
 
     def configure_optimizers(self):
-        return torch.optim.Adam(self.parameters(), lr=self.learning_rate)
+        return torch.optim.AdamW(self.parameters(), lr=self.learning_rate)
 
     def _common_step(self, batch):
         x, y = batch

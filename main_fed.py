@@ -39,9 +39,9 @@ def main():
     # NUM_CLIENTS = [10, 20,30,12,22,50,79,87, 15, 161, 37, 11, 25, 35, 26, 39, 16, 28, 17, 14,  40,  27, 24, 65, 54]
     NUM_CLIENTS = [10, 20, 30]
     # DATASET = ["Cifar10no", "Cifar10", "Mnist","FMnist", "imagenet100", "pcam", "svhn"]
-    DATASET = ["svhn", "imagenet100", "pcam"]
+    DATASET = ["svhn", "pcam", "imagenet100"]
     # MODEL = ["mlp", "mobile"， "resnet","vgg"]
-    MODEL = ["resnet","vgg"]
+    MODEL = ["resnet","deit"]
     IID = [1]
     BATCH_SIZE = 128
     SIZE = 1250  # fixed as 2500 to 10 clients, 1250 to 20 clients and 834 to 30 clients
@@ -116,18 +116,21 @@ def main():
                                 start_time = time.time()
                                 # print(f"Training start: {start_time}")
                                 
-                                # save dataloader for future attack
-                                train_loaders_file = os.path.join(model_directory, 'train_loaders.pk')
-                                with open(train_loaders_file, "wb") as trl:
-                                    pk.dump(train_loaders, trl)
+                                try:
+                                    # save dataloader for future attack
+                                    train_loaders_file = os.path.join(model_directory, 'train_loaders.pk')
+                                    with open(train_loaders_file, "wb") as trl:
+                                        pk.dump(train_loaders, trl)
+                                        
+                                    test_loaders_file = os.path.join(model_directory, 'test_loaders.pk')
+                                    with open(test_loaders_file, "wb") as tsl:
+                                        pk.dump(test_loaders, tsl)
                                     
-                                test_loaders_file = os.path.join(model_directory, 'test_loaders.pk')
-                                with open(test_loaders_file, "wb") as tsl:
-                                    pk.dump(test_loaders, tsl)
-                                
-                                node_adj_list_file = os.path.join(model_directory, 'node_adj_list.pk')
-                                with open(node_adj_list_file, "wb") as ajd:
-                                    pk.dump(node_adj_list, ajd)
+                                    node_adj_list_file = os.path.join(model_directory, 'node_adj_list.pk')
+                                    with open(node_adj_list_file, "wb") as ajd:
+                                        pk.dump(node_adj_list, ajd)
+                                except Exception as e:
+                                    print(e)
                                     
                                     
                                 # save initial params to filesyststem for large scale network
@@ -147,7 +150,7 @@ def main():
                                     print(f"Training start for round: {r}")
                                     # training process
                                     for node_id in range(num):
-                                        
+                                        print(f"Training start for node: {node_id}")
                                         client_path = last_round_file_path + f"client_{node_id}.pth"
                                         
                                         # load last round params

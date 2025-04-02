@@ -17,8 +17,8 @@ from Model.simplemobilenet import SimpleMobileNet
 from Model.pcamresnet18 import PCAMResNet18
 from Model.svhnresnet18 import SVHNResNet18
 from Model.imagenet100vgg import ImageNet100VGG
-
-
+from Model.imagenet100st import ImageNet100SwinTransformer
+from Model.imagenet100deit import ImageNet100DeiTTiny
 from torch.utils.data import Subset, DataLoader, ConcatDataset
 from Node import Node
 import numpy as np
@@ -79,6 +79,10 @@ def dataset_model_set(dataset, model):
         g_dataset = ImageNet100Dataset()
         if model == "vgg":
             g_model = ImageNet100VGG()
+        elif model == "st":
+            g_model = ImageNet100SwinTransformer()
+        elif model == "deit":
+            g_model = ImageNet100DeiTTiny()
     elif dataset == 'pcam':
         g_dataset = PCAMdataset()
         if model == "resnet":

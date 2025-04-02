@@ -12,3 +12,4 @@ statsmodels
 h5py
 lmdb
 matplotlib
+timm
