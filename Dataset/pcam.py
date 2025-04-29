@@ -50,6 +50,7 @@ class PCAMdataset(Dataset):
         # Singletons of MNIST train and test datasets
         transform = transforms.Compose([
             NumpyToPIL(),
+            transforms.Resize((48, 48)),
             transforms.ToTensor(),
             transforms.Normalize(mean=[0.5]*3, std=[0.5]*3)
         ])

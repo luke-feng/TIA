@@ -8,7 +8,7 @@ class ImageNet100Dataset(Dataset):
     imagenet100_train = None
     imagenet100_val = None
 
-    def __init__(self):
+    def __init__(self, img_size=64):
         super().__init__()
 
         self.train_set = None
@@ -16,10 +16,9 @@ class ImageNet100Dataset(Dataset):
 
 
         transform = transforms.Compose([
-            transforms.Resize((224, 224)),  # 可调
+            transforms.Resize((img_size, img_size)),
             transforms.ToTensor(),
-            transforms.Normalize(mean=[0.485, 0.456, 0.406],
-                                 std=[0.229, 0.224, 0.225])
+            transforms.Normalize(mean=[0.5]*3, std=[0.5]*3)
         ])
         
         if ImageNet100Dataset.imagenet100_train is None:

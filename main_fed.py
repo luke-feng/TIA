@@ -1,3 +1,6 @@
+import torch 
+torch.set_float32_matmul_precision("medium")
+
 import logging
 import os
 import sys
@@ -34,19 +37,20 @@ def setup_logger(name, log_file, level=logging.INFO):
 
 def main():
     # TOPOLOGY = ["star", "ring","ER_0.3", "ER_0.5", "ER_0.7",'Abilene', 'GÉANT', 'synth50', 'rf1755', 'rf3967', 'atlanta', 'brain', 'cost266', 'dfn-bwin', 'dfn-gwin', 'di-yuan', 'france',  'germany50', 'giul39', 'india35', 'janos-us', 'janos-us-ca', 'newyork', 'nobel-eu', 'nobel-germany', 'nobel-us', 'norway', 'pdh', 'pioro40', 'polska', 'sun', 'ta1', 'ta2', 'zib54']
-    TOPOLOGY = ["star"]
+    TOPOLOGY = ["ring","ER_0.3", "ER_0.5", "ER_0.7",'Abilene', 'GÉANT', 'synth50', 'rf1755', 'rf3967', 'atlanta', 'cost266', 'dfn-bwin', 'dfn-gwin', 'di-yuan', 'france',  'germany50', 'giul39', 'india35', 'janos-us', 'janos-us-ca', 'newyork', 'nobel-eu', 'nobel-germany', 'nobel-us', 'norway', 'pdh', 'pioro40', 'polska', 'sun', 'ta1', 'ta2', 'zib54']
     ROUND = 20
-    # NUM_CLIENTS = [10, 20,30,12,22,50,79,87, 15, 161, 37, 11, 25, 35, 26, 39, 16, 28, 17, 14,  40,  27, 24, 65, 54]
-    NUM_CLIENTS = [10, 20, 30]
+    NUM_CLIENTS = [10, 20,30,12,22,50,79,87, 15, 161, 37, 11, 25, 35, 26, 39, 16, 28, 17, 14,  40,  27, 24, 65, 54]
+    # NUM_CLIENTS = [10, 20, 30]
     # DATASET = ["Cifar10no", "Cifar10", "Mnist","FMnist", "imagenet100", "pcam", "svhn"]
-    DATASET = ["svhn", "pcam", "imagenet100"]
-    # MODEL = ["mlp", "mobile"， "resnet","vgg"]
-    MODEL = ["resnet","deit"]
+    # DATASET = ["svhn", "pcam", "imagenet100"]
+    DATASET = ["imagenet100"]
+    # MODEL = ["mlp", "mobile"， "resnet","pf"]
+    MODEL = ["pf"]
     IID = [1]
     BATCH_SIZE = 128
     SIZE = 1250  # fixed as 2500 to 10 clients, 1250 to 20 clients and 834 to 30 clients
     # MAX_EPOCHS = [3, 10]
-    MAX_EPOCHS = [10]
+    MAX_EPOCHS = [3]
     SEED = [42]
     ALPHA = 0.1
     
@@ -92,13 +96,13 @@ def main():
                             
                                 # separate client's dataset: # A list containing all dataloaders
                                 if iid:
-                                    train_subsets, test_subsets = sample_iid_train_data(global_dataset, num, SIZE, seed)
+                                    train_subsets, test_subsets, train_subsets_indices, test_subsets_indices = sample_iid_train_data(global_dataset, num, SIZE, seed)
                                     train_loaders = [DataLoader(i, batch_size=BATCH_SIZE, shuffle=True, num_workers=0) for i in train_subsets]
                                     
                                     test_loaders = [DataLoader(i, batch_size=BATCH_SIZE, shuffle=False, num_workers=0) for i in test_subsets]
                                 else:
                                     print("non-iid")
-                                    train_subsets, test_subsets = sample_dirichlet_train_data(global_dataset, num, SIZE * num,
+                                    train_subsets, test_subsets, train_subsets_indices, test_subsets_indices = sample_dirichlet_train_data(global_dataset, num, SIZE * num,
                                                                                 ALPHA, seed)
                                     train_loaders = [DataLoader(train_subsets[i], batch_size=BATCH_SIZE, shuffle=True, num_workers=0)
                                                      for i in range(num)]
@@ -126,11 +130,21 @@ def main():
                                     with open(test_loaders_file, "wb") as tsl:
                                         pk.dump(test_loaders, tsl)
                                     
-                                    node_adj_list_file = os.path.join(model_directory, 'node_adj_list.pk')
-                                    with open(node_adj_list_file, "wb") as ajd:
-                                        pk.dump(node_adj_list, ajd)
+                                    
                                 except Exception as e:
                                     print(e)
+                                
+                                train_subsets_file = os.path.join(model_directory, 'train_subsets_file.pk')
+                                with open(train_subsets_file, "wb") as f:
+                                    pk.dump(train_subsets_indices, f)
+                                    
+                                test_subsets_file = os.path.join(model_directory, 'test_subsets_file.pk')
+                                with open(test_subsets_file, "wb") as f:
+                                    pk.dump(test_subsets_indices, f)
+                                
+                                node_adj_list_file = os.path.join(model_directory, 'node_adj_list.pk')
+                                with open(node_adj_list_file, "wb") as ajd:
+                                    pk.dump(node_adj_list, ajd)
                                     
                                     
                                 # save initial params to filesyststem for large scale network

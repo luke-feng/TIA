@@ -13,3 +13,10 @@ h5py
 lmdb
 matplotlib
 timm
+openpyxl
+kneed
+seaborn
+matplotlib
+scikit-image
+torch_geometric
+pyhessian

@@ -6,13 +6,13 @@ from torchmetrics.classification import MulticlassAccuracy, MulticlassPrecision,
 
 
 class ImageNet100PoolFormerS12(pl.LightningModule):
-    def __init__(self, out_channels=100, learning_rate=1e-3, seed=None):
+    def __init__(self, out_channels=100, learning_rate=1e-3, seed=None, img_size=128):
         super().__init__()
 
         self.save_hyperparameters()
 
         # 加载 PoolFormer-S12 模型并替换分类头为 100 类
-        self.model = timm.create_model('poolformer_s12', pretrained=True, num_classes=out_channels)
+        self.model = timm.create_model('poolformer_s12', pretrained=True, num_classes=out_channels, img_size=img_size)
 
         self.criterion = nn.CrossEntropyLoss()
 

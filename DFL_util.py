@@ -19,6 +19,9 @@ from Model.svhnresnet18 import SVHNResNet18
 from Model.imagenet100vgg import ImageNet100VGG
 from Model.imagenet100st import ImageNet100SwinTransformer
 from Model.imagenet100deit import ImageNet100DeiTTiny
+from Model.imagenet100poolformer import ImageNet100PoolFormerS12
+from Model.imagenet100mobilevit import ImageNet100MobileViT
+from Model.pcamefficientnetv2 import PCAMEfficientNetB0
 from torch.utils.data import Subset, DataLoader, ConcatDataset
 from Node import Node
 import numpy as np
@@ -76,17 +79,21 @@ def dataset_model_set(dataset, model):
         if model == "resnet":
             g_model = SVHNResNet18()
     elif dataset == 'imagenet100':
-        g_dataset = ImageNet100Dataset()
+        g_dataset = ImageNet100Dataset(img_size=128)
         if model == "vgg":
             g_model = ImageNet100VGG()
         elif model == "st":
             g_model = ImageNet100SwinTransformer()
         elif model == "deit":
-            g_model = ImageNet100DeiTTiny()
+            g_model = ImageNet100MobileViT()
+        elif model == "pf":
+            g_model = ImageNet100PoolFormerS12()
     elif dataset == 'pcam':
         g_dataset = PCAMdataset()
         if model == "resnet":
             g_model = PCAMResNet18()
+        elif model == "efficientnet":
+            g_model = PCAMEfficientNetB0()
     return g_dataset, g_model
     
     
@@ -219,7 +226,7 @@ def sample_iid_train_data(dataset, num_client, data_size, seed):
     train_indices = np.arange(len(dataset.train_set))
     test_indices = np.arange(len(dataset.test_set))
     
-    data_size = int(round(len(train_indices)/num_client/2)) - 1
+    data_size = min(int(round(len(train_indices)/num_client/2)) - 1, 3600)
 
     np.random.shuffle(train_indices)
     np.random.shuffle(test_indices)
@@ -233,7 +240,7 @@ def sample_iid_train_data(dataset, num_client, data_size, seed):
     test_subsets_indices = [test_indices[i * test_size:(i + 1) * test_size] for i in range(num_client)]
     test_subsets = [Subset(dataset.test_set, indices) for indices in test_subsets_indices]
 
-    return train_subsets, test_subsets
+    return train_subsets, test_subsets, train_subsets_indices, test_subsets_indices
     
 
 def build_classes_dict(dataset):
@@ -249,7 +256,7 @@ def sample_dirichlet_train_data(dataset, num_client, data_size, alpha, seed):
     all_indices = np.arange(len(train_dataset))
     np.random.shuffle(all_indices)
 
-    data_size = int(round(len(all_indices)/num_client/2)) - 1
+    data_size = min(int(round(len(all_indices)/num_client/2)) - 1, 3600)
     
     subset_indices = all_indices[:data_size]
     subset_dataset = Subset(train_dataset, subset_indices)
@@ -269,9 +276,11 @@ def sample_dirichlet_train_data(dataset, num_client, data_size, alpha, seed):
             per_participant_list[user].extend(sampled_list)
             data_classes[n] = data_classes[n][min(len(data_classes[n]), no_imgs):]
 
+    train_subsets_indices = []
     for i in per_participant_list:
         actual_indices = [subset_indices[idx] for idx in
                           per_participant_list[i]]  # Map back to original dataset indices
+        train_subsets_indices.append(actual_indices)
         per_participant_list[i] = Subset(train_dataset, actual_indices)
 
     for idx, subset in per_participant_list.items():
@@ -286,7 +295,7 @@ def sample_dirichlet_train_data(dataset, num_client, data_size, alpha, seed):
     test_subsets_indices = [test_indices[i * test_size:(i + 1) * test_size] for i in range(num_client)]
     test_subsets = [Subset(dataset.test_set, indices) for indices in test_subsets_indices]
 
-    return per_participant_list, test_subsets
+    return per_participant_list, test_subsets, train_subsets_indices, test_subsets_indices
 
 
 def save_params(params_dict, round_num, file_name, client_id=None, is_global=False):

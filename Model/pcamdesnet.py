@@ -1,19 +1,25 @@
 import torch
 import torch.nn as nn
 import lightning.pytorch as pl
-import timm
+import torchvision.models as models
 from torchmetrics.classification import MulticlassAccuracy, MulticlassPrecision, MulticlassRecall, MulticlassF1Score
 
 
-class ImageNet100DeiTTiny(pl.LightningModule):
-    def __init__(self, out_channels=100, learning_rate=1e-3, seed=None, img_size=128):
+class PCAMDenseNet121(pl.LightningModule):
+    def __init__(self, in_channels=3, out_channels=2, learning_rate=1e-3, seed=None):
         super().__init__()
-
         self.save_hyperparameters()
 
-        # 加载 DeiT-Tiny 模型
-        self.model = timm.create_model('deit_tiny_patch16_224', pretrained=True, img_size=img_size)
-        self.model.head = nn.Linear(self.model.head.in_features, out_channels)
+        # 加载预训练 DenseNet121
+        self.model = models.densenet121(pretrained=True)
+
+        # 修改第一层卷积（DenseNet默认接受 3 通道，可以省略）
+        if in_channels != 3:
+            self.model.features.conv0 = nn.Conv2d(in_channels, 64, kernel_size=7, stride=2, padding=3, bias=False)
+
+        # 替换分类头
+        num_features = self.model.classifier.in_features
+        self.model.classifier = nn.Linear(num_features, out_channels)
 
         self.criterion = nn.CrossEntropyLoss()
 
