@@ -5,15 +5,17 @@ import timm
 from torchmetrics.classification import MulticlassAccuracy, MulticlassPrecision, MulticlassRecall, MulticlassF1Score
 
 
-class ImageNet100MobileViT(pl.LightningModule):
-    def __init__(self, model_name="mobilevitv2_050", out_channels=100, learning_rate=1e-3, seed=None, img_size=64):
+class ImageNet10PoolFormerS12(pl.LightningModule):
+    def __init__(self, out_channels=10, learning_rate=1e-3, seed=None, img_size=128):
         super().__init__()
+
         self.save_hyperparameters()
 
-        # 加载 timm MobileViTv2 模型
-        self.model = timm.create_model(model_name, pretrained=True, img_size=img_size, num_classes=out_channels)
+        # 加载 PoolFormer-S12 模型并替换分类头为 10 类
+        self.model = timm.create_model('poolformer_s12', pretrained=True, num_classes=out_channels, img_size=img_size)
 
         self.criterion = nn.CrossEntropyLoss()
+
         self.accuracy = MulticlassAccuracy(num_classes=out_channels)
         self.precision = MulticlassPrecision(num_classes=out_channels, average='macro')
         self.recall = MulticlassRecall(num_classes=out_channels, average='macro')
@@ -26,7 +28,7 @@ class ImageNet100MobileViT(pl.LightningModule):
         self.learning_rate = learning_rate
 
     def forward(self, x):
-        return self.model.forward_head(self.model.forward_features(x))
+        return self.model(x)
 
     def configure_optimizers(self):
         return torch.optim.AdamW(self.parameters(), lr=self.learning_rate)

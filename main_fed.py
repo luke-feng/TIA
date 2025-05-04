@@ -36,18 +36,19 @@ def setup_logger(name, log_file, level=logging.INFO):
 
 
 def main():
-    # TOPOLOGY = ["star", "ring","ER_0.3", "ER_0.5", "ER_0.7",'Abilene', 'GÉANT', 'synth50', 'rf1755', 'rf3967', 'atlanta', 'brain', 'cost266', 'dfn-bwin', 'dfn-gwin', 'di-yuan', 'france',  'germany50', 'giul39', 'india35', 'janos-us', 'janos-us-ca', 'newyork', 'nobel-eu', 'nobel-germany', 'nobel-us', 'norway', 'pdh', 'pioro40', 'polska', 'sun', 'ta1', 'ta2', 'zib54']
-    TOPOLOGY = ["ring","ER_0.3", "ER_0.5", "ER_0.7",'Abilene', 'GÉANT', 'synth50', 'rf1755', 'rf3967', 'atlanta', 'cost266', 'dfn-bwin', 'dfn-gwin', 'di-yuan', 'france',  'germany50', 'giul39', 'india35', 'janos-us', 'janos-us-ca', 'newyork', 'nobel-eu', 'nobel-germany', 'nobel-us', 'norway', 'pdh', 'pioro40', 'polska', 'sun', 'ta1', 'ta2', 'zib54']
+    TOPOLOGY = ["star", "ring","ER_0.3", "ER_0.5", "ER_0.7",'Abilene', 'GÉANT', 'synth50', 'rf1755', 'rf3967', 'atlanta', 'brain', 'cost266', 'dfn-bwin', 'dfn-gwin', 'di-yuan', 'france',  'germany50', 'giul39', 'india35', 'janos-us', 'janos-us-ca', 'newyork', 'nobel-eu', 'nobel-germany', 'nobel-us', 'norway', 'pdh', 'pioro40', 'polska', 'sun', 'ta1', 'ta2', 'zib54']
+    # TOPOLOGY = ["ring","ER_0.3", "ER_0.5", "ER_0.7",'Abilene', 'GÉANT', 'synth50', 'rf1755', 'rf3967', 'atlanta', 'cost266', 'dfn-bwin', 'dfn-gwin', 'di-yuan', 'france',  'germany50', 'giul39', 'india35', 'janos-us', 'janos-us-ca', 'newyork', 'nobel-eu', 'nobel-germany', 'nobel-us', 'norway', 'pdh', 'pioro40', 'polska', 'sun', 'ta1', 'ta2', 'zib54']
+    # TOPOLOGY = ["ring"]
     ROUND = 20
     NUM_CLIENTS = [10, 20,30,12,22,50,79,87, 15, 161, 37, 11, 25, 35, 26, 39, 16, 28, 17, 14,  40,  27, 24, 65, 54]
-    # NUM_CLIENTS = [10, 20, 30]
+    # NUM_CLIENTS = [10]
     # DATASET = ["Cifar10no", "Cifar10", "Mnist","FMnist", "imagenet100", "pcam", "svhn"]
-    # DATASET = ["svhn", "pcam", "imagenet100"]
-    DATASET = ["imagenet100"]
+    DATASET = ["svhn", "pcam","imagenet10"]
+    # DATASET = ["FMnist"]
     # MODEL = ["mlp", "mobile"， "resnet","pf"]
-    MODEL = ["pf"]
+    MODEL = ["resnet", "pf"]
     IID = [1]
-    BATCH_SIZE = 128
+    BATCH_SIZE = 512
     SIZE = 1250  # fixed as 2500 to 10 clients, 1250 to 20 clients and 834 to 30 clients
     # MAX_EPOCHS = [3, 10]
     MAX_EPOCHS = [3]
@@ -68,7 +69,7 @@ def main():
                     for seed in SEED:
                         for max_epoch in MAX_EPOCHS:
                             for num in NUM_CLIENTS:
-                                ROUND =  num + 10
+                                ROUND =  num
                                 
                                 # G = create_graph_object(num, topo)
                                 toponame_file = f"{cur_dir}/topologies/{num}_{topo}.pk"
@@ -210,7 +211,7 @@ def main():
                                     for node_id in nodes_list:
                                         client_params = nodes_list[node_id]
                                         agged_client_params = fed_avg(client_params, nodes_list, node_adj_list[node_id])
-                                        save_params(client_params, round_num=r, file_name=f"{model_directory}/Aggregated_models/Round_{r}"
+                                        save_params(agged_client_params, round_num=r, file_name=f"{model_directory}/Aggregated_models/Round_{r}"
                                                     , client_id=node_id, is_global=True)
                                         
                                         if r == ROUND-1:

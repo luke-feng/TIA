@@ -16,6 +16,12 @@ from Model.cnn import CIFAR10ModelCNN
 from Model.simplemobilenet import SimpleMobileNet
 from Model.pcamresnet18 import PCAMResNet18
 from Model.svhnresnet18 import SVHNResNet18
+from Model.svhnresnet9 import SVHNResNet9
+from Model.pcamrestnet9 import PCAMResNet9
+
+from Dataset.imagenet10 import ImageNet10Dataset
+from Model.imagenet10poolformer import ImageNet10PoolFormerS12
+
 from Model.imagenet100vgg import ImageNet100VGG
 from Model.imagenet100st import ImageNet100SwinTransformer
 from Model.imagenet100deit import ImageNet100DeiTTiny
@@ -77,7 +83,13 @@ def dataset_model_set(dataset, model):
     elif dataset == 'svhn':
         g_dataset = SVHNdataset()
         if model == "resnet":
-            g_model = SVHNResNet18()
+            g_model = SVHNResNet9()
+            
+    elif dataset == 'imagenet10':
+        g_dataset = ImageNet10Dataset(img_size=128)
+        if model == "pf":
+            g_model = ImageNet10PoolFormerS12()
+                    
     elif dataset == 'imagenet100':
         g_dataset = ImageNet100Dataset(img_size=128)
         if model == "vgg":
@@ -91,7 +103,7 @@ def dataset_model_set(dataset, model):
     elif dataset == 'pcam':
         g_dataset = PCAMdataset()
         if model == "resnet":
-            g_model = PCAMResNet18()
+            g_model = PCAMResNet9()
         elif model == "efficientnet":
             g_model = PCAMEfficientNetB0()
     return g_dataset, g_model

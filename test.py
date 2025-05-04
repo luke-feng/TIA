@@ -10,6 +10,7 @@ from torch.utils.data import Subset, DataLoader, ConcatDataset
 
 from Dataset.svhn import SVHNdataset
 from Model.svhnresnet18 import SVHNResNet18
+from Model.svhnresnet9 import SVHNResNet9
 from Model.pcamresnet18 import PCAMResNet18
 
 from Dataset.pcam import PCAMdataset
@@ -23,8 +24,13 @@ from Model.imagenet100poolformer import ImageNet100PoolFormerS12
 from Model.pcamdesnet import PCAMDenseNet121
 from Model.pcamefficientnetv2 import PCAMEfficientNetB0
 from Model.pcamShuffleNetV2 import PCAMShuffleNetV2
+from Model.pcamMNASNet import PCAMMNASNet
+from Model.pcamrestnet9 import PCAMResNet9
+from Model.ImageNet100EfficientNetB0 import ImageNet100ResNet9
+from Dataset.imagenet10 import ImageNet10Dataset
+from Model.imagenet10poolformer import ImageNet10PoolFormerS12
 
-dataset = ImageNet100Dataset(img_size=128)
+dataset = ImageNet10Dataset(img_size=128)
 
 train_indices = np.arange(len(dataset.train_set))
 np.random.shuffle(train_indices)
@@ -42,10 +48,10 @@ train_subsets = [Subset(dataset.train_set, indices) for indices in train_subsets
 start = time.time()
 for i in range(1):   
 
-    train_loader = DataLoader(train_subsets[i], batch_size=128, shuffle=True, num_workers=0)
-    model = ImageNet100PoolFormerS12()
+    train_loader = DataLoader(train_subsets[i], batch_size=512, shuffle=True, num_workers=0)
+    model = ImageNet10PoolFormerS12(img_size=128)
 
-    local_trainer = Trainer(max_epochs=3, accelerator="auto", devices="auto", logger=False,
+    local_trainer = Trainer(max_epochs=10, accelerator="auto", devices="auto", logger=False,
                                                             # callbacks = [MyCustomCheckpoint(save_dir=f"{model_directory}/Local_models/Round_{r}",
                                                             # idx=client.idx, rou=r, logger=model_logger)],
                                                             enable_checkpointing=False, enable_model_summary=False, enable_progress_bar=True)

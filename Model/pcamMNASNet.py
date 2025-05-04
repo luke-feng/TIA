@@ -1,17 +1,30 @@
 import torch
 import torch.nn as nn
 import lightning.pytorch as pl
-import timm
 from torchmetrics.classification import MulticlassAccuracy, MulticlassPrecision, MulticlassRecall, MulticlassF1Score
+import torchvision.models as models
 
 
-class ImageNet100MobileViT(pl.LightningModule):
-    def __init__(self, model_name="mobilevitv2_050", out_channels=100, learning_rate=1e-3, seed=None, img_size=64):
+class PCAMMNASNet(pl.LightningModule):
+    def __init__(self, in_channels=3, out_channels=2, learning_rate=1e-3, seed=None):
         super().__init__()
-        self.save_hyperparameters()
 
-        # 加载 timm MobileViTv2 模型
-        self.model = timm.create_model(model_name, pretrained=True, img_size=img_size, num_classes=out_channels)
+        self.model = models.mnasnet1_0(weights=None)
+
+        # 替换第一个卷积层（layers[0]）
+        old_conv = self.model.layers[0]
+        self.model.layers[0] = nn.Conv2d(
+            in_channels=in_channels,
+            out_channels=old_conv.out_channels,
+            kernel_size=old_conv.kernel_size,
+            stride=old_conv.stride,
+            padding=old_conv.padding,
+            bias=old_conv.bias is not None
+        )
+
+        # 替换全连接层
+        in_features = self.model.classifier[1].in_features
+        self.model.classifier[1] = nn.Linear(in_features, out_channels)
 
         self.criterion = nn.CrossEntropyLoss()
         self.accuracy = MulticlassAccuracy(num_classes=out_channels)
@@ -26,10 +39,10 @@ class ImageNet100MobileViT(pl.LightningModule):
         self.learning_rate = learning_rate
 
     def forward(self, x):
-        return self.model.forward_head(self.model.forward_features(x))
+        return self.model(x)
 
     def configure_optimizers(self):
-        return torch.optim.AdamW(self.parameters(), lr=self.learning_rate)
+        return torch.optim.Adam(self.parameters(), lr=self.learning_rate)
 
     def _common_step(self, batch):
         x, y = batch

@@ -301,10 +301,10 @@ def _curvature_divergence(model_a_t: OrderedDict[str, torch.Tensor],
 
             if norm_sum != 0:
                 similarity = norm_diff / norm_sum
+                similarities.append(similarity.item())
             else:
                 similarity = 1.0  # Maximum dissimilarity if both updates are zero
-
-            similarities.append(similarity.item())
+                similarities.append(similarity)
 
     if similarities:
         return float(torch.mean(torch.tensor(similarities)))
