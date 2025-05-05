@@ -12,14 +12,18 @@ from Dataset.fmnist import FashionMNISTDataset
 from Model.mlp import MLP
 from Model.fashionmlp import FashionMNISTModelMLP
 from Model.simplemobilenet import SimpleMobileNet
+from Model.svhnresnet9 import SVHNResNet9
+from Model.pcamrestnet9 import PCAMResNet9
+from Model.imagenet10poolformer import ImageNet10PoolFormerS12
 
-TOPOLOGY = ["star", "ring","ER_0.3", "ER_0.5", "ER_0.7",'Abilene', 'GÉANT', 'synth50', 'rf1755', 'rf3967']
-# TOPOLOGY = ['atlanta', 'cost266', 'dfn-bwin', 'dfn-gwin', 'di-yuan', 'france',  'germany50', 'giul39', 'india35', 'janos-us', 'janos-us-ca', 'newyork', 'nobel-eu', 'nobel-germany', 'nobel-us', 'norway', 'pdh', 'pioro40', 'polska', 'sun', 'ta1', 'ta2', 'zib54']
+
+TOPOLOGY = ["star", "ring","ER_0.3", "ER_0.5", "ER_0.7",'Abilene', 'GÉANT', 'synth50', 'rf1755', 'rf3967', 'atlanta', 'cost266', 'dfn-bwin', 'dfn-gwin', 'di-yuan', 'france',  'germany50', 'giul39', 'india35', 'janos-us', 'janos-us-ca', 'newyork', 'nobel-eu', 'nobel-germany', 'nobel-us', 'norway', 'pdh', 'pioro40', 'polska', 'sun', 'ta1', 'ta2', 'zib54']
 NUM_CLIENTS = [10, 20,30,12,22,50,79,87, 15, 161, 37, 11, 25, 35, 26, 39, 16, 28, 17, 14,  40,  27, 24, 65, 54]
 
-# DATASET = ["Cifar10no", "Cifar10", "Mnist","FMnist"]
-DATASET = ["FMnist"]
-MODEL = ["mlp", "mobile"]
+# DATASET = ["Cifar10no", "Cifar10", "Mnist","FMnist", "imagenet100", "pcam", "svhn"]
+DATASET = ["FMnist", "svhn"]
+# MODEL = ["mlp", "mobile"， "resnet","pf"]
+MODEL = ["mlp", "resnet"]
 IID = [1]
 MAX_EPOCHS = [3]
 ALPHA = 0.1
@@ -35,6 +39,12 @@ def _get_model(dataset, model_name):
         return SimpleMobileNet()
     if dataset == 'Cifar10no' and model_name == 'mobile':
         return SimpleMobileNet()
+    if dataset == 'svhn' and model_name == 'resnet':
+        return SVHNResNet9()
+    if dataset == 'pcam' and model_name == 'resnet':
+        return PCAMResNet9()
+    if dataset == 'imagenet10' and model_name == 'pf':
+        return ImageNet10PoolFormerS12()
 
 
 cur_dir = os.getcwd()
@@ -64,38 +74,42 @@ for dataset in DATASET:
                                 
                                 
                                 if scenario_name in all_scenarios:
-                                    print(scenario_name)
+                                    # print(scenario_name)
                                     scenario_folder = saved_model_path + scenario_name
                                     train_loader_file = os.path.join(scenario_folder, "train_loaders.pk")
                                     with open(train_loader_file, 'rb') as f:
                                         train_loaders = pk.load(f)
 
                                     model = _get_model(dataset, model_name)
-                                    model_folder = f'{scenario_folder}\\Aggregated_models\\Round_{num-1}\\'
-                                    clients = []
-                                    for node_id in range(num):
-                                        # print(f"load model for node: {node_id}")
-                                        client_path = model_folder + f"client_{node_id}.pth"
+                                    try:
+                                        model_folder = f'{scenario_folder}\\Aggregated_models\\Round_{num-1}\\'
+                                        clients = []
+                                        for node_id in range(num):
+                                            # print(f"load model for node: {node_id}")
+                                            client_path = model_folder + f"client_{node_id}.pth"
 
-                                        if os.path.exists(client_path):                                        
-                                            last_round_params = torch.load(client_path)
-                                        
-                                            client = copy.deepcopy(model)
-                                            client.load_state_dict(last_round_params)
-                                            clients.append(client)
+                                            if os.path.exists(client_path):                                        
+                                                last_round_params = torch.load(client_path)
                                             
-                                    model_folder = f'{scenario_folder}\\Aggregated_models\\Round_{num-2}\\'
-                                    clients_last = []
-                                    for node_id in range(num):
-                                        # print(f"load last round model for node: {node_id}")
-                                        client_path = model_folder + f"client_{node_id}.pth"
+                                                client = copy.deepcopy(model)
+                                                client.load_state_dict(last_round_params)
+                                                clients.append(client)
+                                                
+                                        model_folder = f'{scenario_folder}\\Aggregated_models\\Round_{num-2}\\'
+                                        clients_last = []
+                                        for node_id in range(num):
+                                            # print(f"load last round model for node: {node_id}")
+                                            client_path = model_folder + f"client_{node_id}.pth"
 
-                                        if os.path.exists(client_path):                                        
-                                            last_round_params = torch.load(client_path)
-                                        
-                                            client = copy.deepcopy(model)
-                                            client.load_state_dict(last_round_params)
-                                            clients_last.append(client)
+                                            if os.path.exists(client_path):                                        
+                                                last_round_params = torch.load(client_path)
+                                            
+                                                client = copy.deepcopy(model)
+                                                client.load_state_dict(last_round_params)
+                                                clients_last.append(client)
+                                    except:
+                                        print(scenario_name)
+                                        continue
                                     
                                     
                                     try:

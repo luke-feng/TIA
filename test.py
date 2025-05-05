@@ -30,7 +30,7 @@ from Model.ImageNet100EfficientNetB0 import ImageNet100ResNet9
 from Dataset.imagenet10 import ImageNet10Dataset
 from Model.imagenet10poolformer import ImageNet10PoolFormerS12
 
-dataset = ImageNet10Dataset(img_size=128)
+dataset = ImageNet10Dataset(img_size=32)
 
 train_indices = np.arange(len(dataset.train_set))
 np.random.shuffle(train_indices)
@@ -49,7 +49,7 @@ start = time.time()
 for i in range(1):   
 
     train_loader = DataLoader(train_subsets[i], batch_size=512, shuffle=True, num_workers=0)
-    model = ImageNet10PoolFormerS12(img_size=128)
+    model = ImageNet10PoolFormerS12()
 
     local_trainer = Trainer(max_epochs=10, accelerator="auto", devices="auto", logger=False,
                                                             # callbacks = [MyCustomCheckpoint(save_dir=f"{model_directory}/Local_models/Round_{r}",

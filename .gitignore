@@ -179,3 +179,4 @@ cython_debug/
 /saved_models
 /data
 /.venv
+/saved_metrics

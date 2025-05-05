@@ -86,7 +86,7 @@ def dataset_model_set(dataset, model):
             g_model = SVHNResNet9()
             
     elif dataset == 'imagenet10':
-        g_dataset = ImageNet10Dataset(img_size=128)
+        g_dataset = ImageNet10Dataset(img_size=32)
         if model == "pf":
             g_model = ImageNet10PoolFormerS12()
                     
