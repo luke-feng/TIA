@@ -180,3 +180,7 @@ cython_debug/
 /data
 /.venv
 /saved_metrics
+*.pdf 
+*.csv
+*.xlsx
+*.ipynb 

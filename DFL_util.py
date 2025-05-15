@@ -146,8 +146,8 @@ def create_graph_object(num, name):
         G = nx.cycle_graph(num)
     elif name == "random":       
         G = nx.cycle_graph(num)
-        for combo in graph_info["combo"]:
-            G.add_edge(*combo)
+        # for combo in graph_info["combo"]:
+        #     G.add_edge(*combo)
     elif name.startswith("ER_"):
         try:
             # Extract probability and seed from the graph_info
@@ -268,7 +268,7 @@ def sample_dirichlet_train_data(dataset, num_client, data_size, alpha, seed):
     all_indices = np.arange(len(train_dataset))
     np.random.shuffle(all_indices)
 
-    data_size = min(int(round(len(all_indices)/num_client/2)) - 1, 3600)
+    data_size = int(round(len(all_indices)/2)) - 1
     
     subset_indices = all_indices[:data_size]
     subset_dataset = Subset(train_dataset, subset_indices)
@@ -287,12 +287,30 @@ def sample_dirichlet_train_data(dataset, num_client, data_size, alpha, seed):
             sampled_list = data_classes[n][:min(len(data_classes[n]), no_imgs)]
             per_participant_list[user].extend(sampled_list)
             data_classes[n] = data_classes[n][min(len(data_classes[n]), no_imgs):]
-
-    train_subsets_indices = []
+            
+    assigned_indices = []
+    for i in per_participant_list:
+        actual_indices = [subset_indices[idx] for idx in
+                          per_participant_list[i]]
+        assigned_indices += actual_indices
+        
+    unassigned_indices = []
+    for inx in subset_indices:
+        if inx not in assigned_indices:
+            unassigned_indices.append(inx)
+    
+    print(f"unassigned_indices {len(unassigned_indices)}")
+    
+    zero_assigned_client = 0
     for i in per_participant_list:
         actual_indices = [subset_indices[idx] for idx in
                           per_participant_list[i]]  # Map back to original dataset indices
-        train_subsets_indices.append(actual_indices)
+        # assign 10 to zero data client
+        if len(actual_indices) == 0 and len(unassigned_indices)>10:
+            actual_indices = unassigned_indices[zero_assigned_client*10 : (zero_assigned_client+1)*10]
+            zero_assigned_client += 1
+            print(f"client {i} got zero data, assign 10 to it.")
+            
         per_participant_list[i] = Subset(train_dataset, actual_indices)
 
     for idx, subset in per_participant_list.items():
@@ -307,7 +325,7 @@ def sample_dirichlet_train_data(dataset, num_client, data_size, alpha, seed):
     test_subsets_indices = [test_indices[i * test_size:(i + 1) * test_size] for i in range(num_client)]
     test_subsets = [Subset(dataset.test_set, indices) for indices in test_subsets_indices]
 
-    return per_participant_list, test_subsets, train_subsets_indices, test_subsets_indices
+    return per_participant_list, test_subsets
 
 
 def save_params(params_dict, round_num, file_name, client_id=None, is_global=False):

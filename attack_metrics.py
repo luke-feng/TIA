@@ -311,4 +311,66 @@ def _curvature_divergence(model_a_t: OrderedDict[str, torch.Tensor],
     else:
         return None
     
+def evaluate_model_metrics(model, received_model_state_dict, local_dataloader, 
+                           device='cuda', max_batches=1,
+                           compute_loss=True, compute_entropy=True, compute_jacobian=True):
+    model.to(device)
+    model.eval()
+    model.load_state_dict(received_model_state_dict)
     
+    total_loss = 0.0
+    total_entropy = 0.0
+    total_jacobian_norm = 0.0
+    total_samples = 0
+    num_projections = 1  # For Hutchinson estimator
+    
+    loss_fn = nn.CrossEntropyLoss(reduction='sum')
+
+    for batch_idx, batch in enumerate(local_dataloader):
+        if max_batches is not None and batch_idx >= max_batches:
+            break
+
+        inputs, labels = batch
+        inputs, labels = inputs.to(device), labels.to(device)
+
+        inputs.requires_grad_(compute_jacobian)
+        logits = model(inputs)
+        batch_size = inputs.size(0)
+        total_samples += batch_size
+
+        if compute_loss:
+            loss = loss_fn(logits, labels)
+            total_loss += loss.item()
+
+        if compute_entropy:
+            probs = F.softmax(logits, dim=1)
+            entropy = -torch.sum(probs * torch.log(probs + 1e-10), dim=1).mean()
+            total_entropy += entropy.item() * batch_size
+
+        if compute_jacobian:
+            batch_norm = 0.0
+            for _ in range(num_projections):
+                v = torch.randn_like(logits)
+                grads = torch.autograd.grad(
+                    logits,
+                    inputs,
+                    grad_outputs=v,
+                    retain_graph=True,
+                    create_graph=False,
+                    only_inputs=True
+                )[0]
+                batch_norm += (grads.norm(dim=1) ** 2).sum().item()
+            batch_norm /= num_projections
+            total_jacobian_norm += batch_norm
+
+    relative_loss = 0
+    average_entropy = 0
+    average_jacobian_norm = 0
+    if compute_loss:
+        relative_loss = total_loss / total_samples
+    if compute_entropy:
+        average_entropy = total_entropy / total_samples
+    if compute_jacobian:
+        average_jacobian_norm = total_jacobian_norm / total_samples
+
+    return relative_loss, average_entropy, average_jacobian_norm
